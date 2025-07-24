@@ -28,10 +28,10 @@ type AuthResponse struct {
 }
 
 type CreateAdRequest struct {
-	Title    string  `json:"title"`
-	Text     string  `json:"text"`
-	ImageURL string  `json:"image_url"`
-	Price    float64 `json:"price"`
+	Title    string `json:"title"`
+	Text     string `json:"text"`
+	ImageURL string `json:"image_url"`
+	Price    int64  `json:"price"`
 }
 
 func (authReq *AuthRequest) hashPassword() (string, error) {
@@ -49,7 +49,7 @@ func RegisterHandler(storage *sqlite.Storage) http.HandlerFunc {
 		}
 
 		if req.Username == "" || req.Password == "" {
-			http.Error(w, "Username and password are required", http.StatusBadRequest)
+			http.Error(w, "Username or/and password are not specified", http.StatusNotFound)
 			return
 		}
 
@@ -69,6 +69,8 @@ func RegisterHandler(storage *sqlite.Storage) http.HandlerFunc {
 
 		if err := storage.CreateUser(newUser); err != nil {
 			log.Fatalf("Failed to create user in database: %s", err)
+			http.Error(w, "Internal server error", http.StatusBadRequest)
+			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -105,19 +107,21 @@ func LoginHandler(storage *sqlite.Storage) http.HandlerFunc {
 		user, err := storage.GetUserByUsername(req.Username)
 		if err != nil {
 			log.Printf("Failed to find user: %s", err)
-			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+			http.Error(w, "Invalid login or password", http.StatusUnauthorized)
 			return
 		}
 
 		if !checkPasswordHash(req.Password, user.Password) {
 			log.Printf("Failed to check password: %s", err)
-			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+			http.Error(w, "Invalid login or password", http.StatusUnauthorized)
 			return
 		}
 
 		token, err := generateToken(user)
 		if err != nil {
 			log.Fatal("Failed to generate token")
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(AuthResponse{Token: token})
@@ -201,18 +205,23 @@ func GetAdsParams(urlQuery url.Values) (*sqlite.AdsParamsRequest, error) {
 	if err != nil && urlQuery.Get("page") != "" {
 		return nil, err
 	}
-
-	params.Limit, err = strconv.Atoi(urlQuery.Get("limit"))
-	if err != nil && urlQuery.Get("limit") != "" {
-		return nil, err
+	if params.Page == 0 {
+		params.Page = 1
 	}
 
 	params.SortBy = urlQuery.Get("sort_by")
+	if params.SortBy == "created_at" || params.SortBy == "" {
+		params.SortBy = "ads.created_at"
+	}
+
 	params.SortDir = urlQuery.Get("sort_dir")
+	if params.SortDir == "" {
+		params.SortDir = "asc"
+	}
 
 	priceMinStr := urlQuery.Get("price_min")
 	if priceMinStr != "" {
-		params.PriceMin, err = strconv.ParseFloat(priceMinStr, 64)
+		params.PriceMin, err = strconv.Atoi(priceMinStr)
 		if err != nil {
 			return nil, err
 		}
@@ -220,7 +229,7 @@ func GetAdsParams(urlQuery url.Values) (*sqlite.AdsParamsRequest, error) {
 
 	priceMaxStr := urlQuery.Get("price_max")
 	if priceMaxStr != "" {
-		params.PriceMax, err = strconv.ParseFloat(priceMaxStr, 64)
+		params.PriceMax, err = strconv.Atoi(priceMaxStr)
 		if err != nil {
 			return nil, err
 		}

@@ -20,11 +20,11 @@ func main() {
 
 	router := chi.NewRouter()
 
-	router.Post("/register", handlers.RegisterHandler(storage))
-	router.Post("/add-card", handlers.AuthMiddleware(handlers.AddCardHandler(storage)))
-	router.Post("/login", handlers.LoginHandler(storage))
+	router.Post("/user/register", handlers.RegisterHandler(storage))
+	router.Post("/user/login", handlers.LoginHandler(storage))
 
-	router.Get("/all-cards", handlers.AuthMiddleware(handlers.GetAllCardsHandler(storage)))
+	router.Post("/item/add", handlers.AuthMiddleware(handlers.AddCardHandler(storage)))
+	router.Get("/item/get", handlers.AuthMiddleware(handlers.GetAllCardsHandler(storage)))
 
 	server := &http.Server{
 		Addr:        cfg.Address,

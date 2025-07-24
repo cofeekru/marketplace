@@ -1,0 +1,285 @@
+openapi: 3.0.3
+info:
+  title: MARKETPLACE API
+  description: "Public API marketplace"
+  
+  version: 1.0.0
+
+servers:
+  - url: http://46.8.143.164:8080/
+tags:
+  - name: User
+    description: Work with user
+  - name: Item
+    description: Work with items
+    
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      
+paths:
+  /user/register:
+    post:
+      tags:
+        - User
+      summary: Registers the user
+      description: Registers the user
+      
+          
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+                properties:
+                  username: 
+                    type: string
+                  password: 
+                    type: string
+      responses:
+        '201':
+          description: Successful register
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  username:
+                    type: string
+                  created_at:
+                    type: string
+                    
+        
+                
+        '400':
+          description: Invalid request body
+          content:
+            text/plain:
+              schema:
+                type: string
+                
+        '404':
+          description: Username or/and password are not specified
+          content:
+            text/plain:
+              schema:
+                type: string
+          
+        '422':
+          description: Username or/and password do not meet the established restrictions
+          content:
+            text/plain:
+              schema:
+                type: string
+                 
+        '500':
+          description: Internal Server Error
+          content:
+            text/plain:
+              schema:
+                type: string
+  
+  /user/login:
+    post:
+      tags:
+        - User
+      summary: User authorization
+      description: User authorization and return of the authorization token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+                properties:
+                  username: 
+                    type: string
+                  password: 
+                    type: string
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+            
+        '400':
+          description: Invalid request body
+          content:
+            text/plain:
+              schema:
+                type: string
+                
+        '401':
+          description: Username or/and password are incorrect
+          content:
+            text/plain:
+              schema:
+                type: string
+                
+        '500':
+          description: Internal Server Error
+          content:
+            text/plain:
+              schema:
+                type: string
+                
+  /item/add:
+    post:
+      tags:
+        - Item
+      summary: Add new item
+      description: Add new item by authorize user
+      security:
+        - bearerAuth: []
+          
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                title: 
+                  type: string
+                text: 
+                  type: string
+                image_url: 
+                  type: string
+                price: 
+                  type: integer
+      
+      responses:
+        '200':
+          description: Successful add
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  user_id:
+                    type: string
+                  title:
+                    type: string
+                  text:
+                    type: string
+                  image_url:
+                    type: string
+                  price:
+                    type: integer
+                  created_at:
+                    type: string
+          
+        '400':
+          description: Invalid request body
+          content:
+            text/plain:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            text/plain:
+              schema:
+                type: string
+                
+  /item/get:
+    get:
+      tags:
+        - Item
+      summary: Get items by parameters
+      description: Get items by parameters
+      x-auth-optional: true
+      security:
+        - bearerAuth: [] 
+        
+      parameters: 
+        - name: page
+          in: query
+          description: Number of the page.
+          required: false
+          schema:
+            type: integer
+            default: 1
+            example: 100
+            
+        - name: sortby
+          in: query
+          description: Sort by category
+          required: false
+          schema:
+            type: string
+            default: created_at
+            example: price, created_at, id
+        
+        - name: sortdir
+          in: query
+          description: Sort direction
+          required: false
+          schema:
+            type: string
+            default: ASC
+            example: ASC or DESC
+            
+        - name: pricemin
+          in: query
+          description: Minimum price in the selection
+          required: false
+          schema:
+            type: integer
+            example: 1
+            
+        - name: pricemax
+          in: query
+          description: Maximum price in the selection
+          required: false
+          schema:
+            type: integer
+            example: 10000
+          
+      responses:
+        '200':
+          description: Successful add
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  user_id:
+                    type: string
+                  title:
+                    type: string
+                  text:
+                    type: string
+                  image_url:
+                    type: string
+                  price:
+                    type: integer
+                  created_at:
+                    type: string
+          
+        '400':
+          description: Invalid request body
+          content:
+            text/plain:
+              schema:
+                type: string
+        '500':
+          description: Internal Server Error
+          content:
+            text/plain:
+              schema:
+                type: string
+  
+ 

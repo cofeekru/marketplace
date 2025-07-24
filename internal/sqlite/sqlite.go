@@ -26,26 +26,17 @@ type Ad struct {
 	Title     string    `json:"title"`
 	Text      string    `json:"text"`
 	ImageURL  string    `json:"image_url"`
-	Price     float64   `json:"price"`
+	Price     int64     `json:"price"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
 type AdResponse struct {
-	Username string  `json:"username"`
-	Title    string  `json:"title"`
-	Text     string  `json:"text"`
-	ImageURL string  `json:"image_url"`
-	Price    float64 `json:"price"`
-	IsMine   bool    `json:"is_mine"`
-}
-
-type AdsParamsRequest struct {
-	Page     int
-	Limit    int
-	SortBy   string
-	SortDir  string
-	PriceMin float64
-	PriceMax float64
+	Username string `json:"username"`
+	Title    string `json:"title"`
+	Text     string `json:"text"`
+	ImageURL string `json:"image_url"`
+	Price    int64  `json:"price"`
+	IsMine   bool   `json:"is_mine"`
 }
 
 func (s *Storage) CreateUser(user User) error {
@@ -70,6 +61,14 @@ func (s *Storage) CreateAd(ad Ad) error {
 	return err
 }
 
+type AdsParamsRequest struct {
+	Page     int
+	SortBy   string
+	SortDir  string
+	PriceMin int
+	PriceMax int
+}
+
 func (s *Storage) GetListAds(userID_Current string, params AdsParamsRequest) ([]AdResponse, error) {
 	query := `
 		SELECT 
@@ -79,24 +78,17 @@ func (s *Storage) GetListAds(userID_Current string, params AdsParamsRequest) ([]
 		WHERE 1=1
 	`
 	if params.PriceMin > 0 {
-		query += fmt.Sprintf(" AND ads.price >= $%f", params.PriceMin)
+		query += fmt.Sprintf(" AND ads.price >= %d", params.PriceMin)
 	}
 
 	if params.PriceMax > 0 {
-		query += fmt.Sprintf(" AND ads.price <= $%f", params.PriceMax)
+		query += fmt.Sprintf(" AND ads.price <= %d", params.PriceMax)
 	}
 
-	if params.SortBy != "" && params.SortDir != "" {
-		query += fmt.Sprintf(" ORDER BY %s %s", params.SortBy, params.SortDir)
-	} else {
-		query += " ORDER BY ads.created_at DESC"
-	}
+	query += fmt.Sprintf(" ORDER BY %s %s", params.SortBy, params.SortDir)
 
-	if params.Limit > 0 {
-		query += fmt.Sprintf(" LIMIT $%d", params.Limit)
-	}
 	if params.Page > 0 {
-		query += fmt.Sprintf(" OFFSET $%d", (params.Page+1)*10)
+		query += fmt.Sprintf(" LIMIT 10 OFFSET %d", (params.Page-1)*10)
 	}
 
 	rows, err := s.db.Query(query)
@@ -110,7 +102,7 @@ func (s *Storage) GetListAds(userID_Current string, params AdsParamsRequest) ([]
 	for rows.Next() {
 		var ad AdResponse
 		var userID_Database, title, text, imageURL, username string
-		var price float64
+		var price int64
 
 		if err := rows.Scan(&title, &text, &imageURL, &price, &username, &userID_Database); err != nil {
 			return nil, err
@@ -160,16 +152,16 @@ func (s *Storage) createAdsTable() error {
 func New(storagePath string) (*Storage, error) {
 	db, err := sql.Open("sqlite3", storagePath)
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %s", err)
+		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	database := &Storage{db: db}
 
 	if err = database.createUsersTable(); err != nil {
-		log.Fatalf("Failed to create users table: %s", err)
+		log.Fatalf("Failed to create users table: %v", err)
 	}
 
 	if err = database.createAdsTable(); err != nil {
-		log.Fatalf("Failed to create ads table: %s", err)
+		log.Fatalf("Failed to create ads table: %v", err)
 	}
 
 	return database, nil
