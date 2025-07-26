@@ -21,7 +21,7 @@ marketplace -  приложение имитирующее работу усло
 
 2.2) Запустить в Docker контейнере.
 ```
-    docker build . && docker run {image_id}
+    docker pull golang && docker build . && docker run {image_id}
 ```
 
 ## Обзор репозитория.
